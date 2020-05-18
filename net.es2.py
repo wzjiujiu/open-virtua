@@ -364,6 +364,7 @@ snrs = [connection.snr for connection in streamed_connections]
 plt.hist(snrs, bins=10)
 plt.title('SNR distribution')
 plt.show()
+print()
 
 
 
