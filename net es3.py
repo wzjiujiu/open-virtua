@@ -125,14 +125,14 @@ class Line(object):
         self._successive = successive
 
     def latency_generation(self):
-        latency = self.lenght / (c * 2 / 3)
+        latency = self.lenght / ((3*10^8) * (2 / 3))
         return latency
 
     def noise_generation(self, signal_power):
         noise = signal_power / (2 * self.lenght)
         return noise
 
-    def propagate(self, signal_information, occupation=True):
+    def propagate(self, signal_information, occupation=False):
         #update latency
         latency = self.latency_generation()
         signal_information.add_latency(latency)
@@ -144,12 +144,13 @@ class Line(object):
 
         #update line state
         if occupation:
-            self.state ='occupied'
+            self.state = 'occupied'
 
         node = self.successive[signal_information.path[0]]
         signal_information = node.propagate(signal_information, occupation)
 
         return signal_information
+
 
 class Network(object):
     def __init__(self, json_path):
@@ -217,7 +218,6 @@ class Network(object):
                 for cross_node in cross_nodes:
                     if (inner_path[-1]+cross_node in cross_lines) & (cross_node not in inner_path):
                         inner_paths[str(i+1)] = inner_paths[str(i+1)]+[inner_path+cross_node]
-
         paths = []
         for i in range(len(cross_nodes)+1):
             for path in inner_paths[str(i)]:
@@ -237,10 +237,10 @@ class Network(object):
                 node.successive[line_label] = lines_dict[line_label]
         self._connected = True
 
-    def propagate(self, signal_information):
+    def propagate(self, signal_information, occupation= False):
         path = signal_information.path
         start_node = self.nodes[path[0]]
-        propagated_signal_information = start_node.propagate(signal_information) #ricorsione
+        propagated_signal_information = start_node.propagate(signal_information, occupation=False) #ricorsione
         return propagated_signal_information
 
     def set_weighted_paths(self, signal_power):
@@ -260,7 +260,7 @@ class Network(object):
         snrs = []
 
         for pair in pairs:
-            for path in network.find_paths(pair[0], pair[1]):
+            for path in self.find_paths(pair[0], pair[1]):
                 path_string = ''
                 for node in path:
                     path_string = path_string + node + '->'
@@ -268,8 +268,8 @@ class Network(object):
 
                 # propagation
 
-                signal_information = Signalinformations(1, path)
-                signal_information = network.propagate(signal_information)
+                signal_information = Signalinformations(signal_power, path)
+                signal_information = self.propagate(signal_information, occupation=False)
                 latencies.append(signal_information.latency)
                 noises.append(signal_information.noise_power)
                 snrs.append(10 * np.log10(signal_information.signal_power / signal_information.noise_power))
@@ -283,14 +283,16 @@ class Network(object):
     def available_path(self, input_node, output_node):
         if self.weighted_paths is None:
             self.set_weighted_paths(1)
-        all_paths = [path for path in self.weighted_paths.path.values
-                     if(((path[0]) == input_node) and (path[-1] == output_node))]
+        all_paths=[]
+        for path in self.weighted_paths.path.values:
+            if (path[0] == input_node) and (path[-1] == output_node):
+                all_paths.append(path)
         unavailable_lines = [line for line in self.lines if self.lines[line].state == 'occupied']
         available_paths = []
         for path in all_paths:
             available = True
             for line in unavailable_lines:
-                if (line[0] + '->' + line[1] )in path:
+                if (line[0] + '->' + line[1]) in path:
                     available = False
                     break
                 if available:
@@ -320,7 +322,7 @@ class Network(object):
 
         return best_path
 
-    def stream(self, connections, best= 'latency'):
+    def stream(self, connections, best='latency'):
         streamed_connections = []
         for connection in connections:
             input_node = connection.input_node
@@ -336,7 +338,7 @@ class Network(object):
                 continue
             if path:
                 in_signal_information = Signalinformations(signal_power, path)
-                out_signal_information = self.propagate(in_signal_information)
+                out_signal_information = self.propagate(in_signal_information, True)
                 connection.latency = out_signal_information.latency
                 noise = out_signal_information.noise_power
                 connection.snr = 10 * np.log10(signal_power / noise)
@@ -345,7 +347,6 @@ class Network(object):
                 connection.snr = 0
 
             streamed_connections.append(connection)
-
         return streamed_connections
 
 class Connection(object):

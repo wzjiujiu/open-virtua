@@ -110,7 +110,7 @@ class Line(object):
         self._successive = successive
 
     def latency_generation(self):
-        latency = self.lenght / (c * 2 / 3)
+        latency = self.lenght / ((3*10^(8) )* (2 / 3))
         return latency
 
     def noise_generation(self, signal_power):
@@ -216,7 +216,6 @@ class Network(object):
                 line = lines_dict[line_label]
                 line.successive[connected_node] = nodes_dict[connected_node]
                 node.successive[line_label] = lines_dict[line_label]
-        self._connected = True
 
     def propagate(self, signal_information):
         path = signal_information.path

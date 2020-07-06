@@ -110,7 +110,7 @@ class Line(object):
         self._successive = successive
 
     def latency_generation(self):
-        latency = self.lenght / (c * 2 / 3)
+        latency = self.lenght / ((3*10^(8)) * (2 / 3))
         return latency
 
     def noise_generation(self, signal_power):
@@ -251,10 +251,10 @@ for pair in pairs:
         noises.append(signal_information.noise_power)
         snrs.append(10*np.log10(signal_information.signal_power/signal_information.noise_power))
 
-df['path']=paths
-df['latency']=latencies
-df['noise']=noises
-df['snr']=snrs
+df['path'] = paths
+df['latency'] = latencies
+df['noise'] = noises
+df['snr'] = snrs
 
 print(paths)
 print(latencies)
